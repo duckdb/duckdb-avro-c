@@ -42,16 +42,16 @@ struct avro_error_data_t {
 
 
 #if defined THREADSAFE 
-#if ( defined __unix__ || defined __unix )
+#ifndef _WIN32
 #include <pthread.h>
 static pthread_key_t error_data_key;
 static pthread_once_t error_data_key_once = PTHREAD_ONCE_INIT;
 
-static void make_error_data_key()
+static void make_error_data_key(void)
 {
     pthread_key_create(&error_data_key, free);
 }
-#elif defined _WIN32
+#else
 #include <Windows.h>
 
 static __declspec( thread ) struct avro_error_data_t TLS_ERROR_DATA = { "", "", NULL, NULL };
@@ -63,7 +63,7 @@ static struct avro_error_data_t *
 avro_get_error_data(void)
 {
 #if defined THREADSAFE  
-#if defined __unix__ || defined __unix
+#ifndef _WIN32
 
     pthread_once(&error_data_key_once, make_error_data_key);
 
@@ -82,7 +82,7 @@ avro_get_error_data(void)
 
     return ERROR_DATA;
 
-#elif defined _WIN32
+#else
 	
 	if ( TLS_ERROR_DATA.AVRO_CURRENT_ERROR == NULL )
 	{
@@ -92,7 +92,7 @@ avro_get_error_data(void)
 	}
 	return &TLS_ERROR_DATA;
 
-	#endif /* UNIX and WIN32 threadsafe handling */
+	#endif /* POSIX and WIN32 threadsafe handling */
 
 #else /* not thread-safe */  
     static struct avro_error_data_t ERROR_DATA = {

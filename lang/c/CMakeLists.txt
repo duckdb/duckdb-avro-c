@@ -25,6 +25,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR})
 option(BUILD_EXAMPLES "Build examples." OFF)
 option(BUILD_TESTS "Build tests." OFF)
 option(BUILD_DOCS "Build docs." OFF)
+option(THREADSAFE "Use thread-local error storage." ON)
 # Eliminates warning about linker paths when linking both zlib and
 # liblzma.
 cmake_policy(SET CMP0003 NEW)
@@ -121,19 +122,16 @@ endif(WIN32)
 # Uncomment to allow non-atomic increment/decrement of reference count
 # add_definitions(-DAVRO_ALLOW_NON_ATOMIC_REFCOUNT)
 
-# Thread support (only for *nix with pthreads)
+# Thread support
 set(THREADS_LIBRARIES)
-if(UNIX AND THREADSAFE AND CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_THREAD_PREFER_PTHREAD)
-    find_package(Threads)
-
-    if(NOT CMAKE_USE_PTHREADS_INIT)
-        message(FATAL_ERROR "pthreads not found")
-    endif(NOT CMAKE_USE_PTHREADS_INIT)
-
+if(THREADSAFE)
     add_definitions(-DTHREADSAFE -D_REENTRANT)
-    set(THREADS_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
-endif(UNIX AND THREADSAFE AND CMAKE_COMPILER_IS_GNUCC)
+    if(UNIX)
+        set(CMAKE_THREAD_PREFER_PTHREAD ON)
+        find_package(Threads REQUIRED)
+        set(THREADS_LIBRARIES Threads::Threads)
+    endif()
+endif()
 
 include_directories(${AvroC_SOURCE_DIR}/src)
 
