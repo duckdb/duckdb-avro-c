@@ -264,11 +264,17 @@ int avro_value_set_fixed(avro_value_t *value,
 ----
 
 These are also straightforward.  For +bytes+, +string+, and +fixed+
-values, the +set+ methods will make a copy of the underlying data.  For
-+string+ values, the content must be NUL-terminated.  You can use
-+set_string_len+ if you already know the length of the string content;
-the length you pass in should include the NUL terminator.  If you call
-+set_string+, then we'll use +strlen+ to calculate the length.
+values, the +set+ methods will make a copy of the underlying data.
++set_string_len+ accepts a pointer and a byte count.  It copies exactly
+that many bytes, including any embedded NUL bytes.  No terminator is
+required in the input or counted in the supplied size.  The setter adds
+a terminator to its internal storage for compatibility with string getters.
+The separate +set_string+ convenience function has no size argument and
+uses +strlen+ to find the input length.
+
+The explicit-length setter differs from upstream Avro-C's
+terminator-inclusive setter length.  String getters and owned buffers
+still include the terminator in their reported size.
 
 For +fixed+ values, the +size+ must match what's expected by the value's
 underlying +fixed+ schema; if the sizes don't match, you'll get an error
@@ -755,4 +761,3 @@ checks that all the avro types can be encoded/decoded correctly.
 ----
 include::../tests/test_avro_data.c[]
 ----
-

@@ -136,6 +136,22 @@ int avro_givestring_set(avro_datum_t datum, const char *p,
 	return avro_string_set_private(datum, p, size, free);
 }
 
+int avro_string_set_length(avro_datum_t datum, const char *p, size_t size)
+{
+	char *string_copy = avro_strndup(p, size);
+	int rval;
+	if (!string_copy) {
+		avro_set_error("Cannot copy string content");
+		return ENOMEM;
+	}
+	rval = avro_string_set_private(datum, string_copy, size + 1,
+				       avro_str_free_wrapper);
+	if (rval) {
+		avro_str_free(string_copy);
+	}
+	return rval;
+}
+
 static avro_datum_t avro_bytes_private(char *bytes, int64_t size,
 				       avro_free_func_t bytes_free)
 {

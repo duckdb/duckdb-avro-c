@@ -27,6 +27,7 @@
 #include "avro/schema.h"
 #include "avro/value.h"
 #include "avro_private.h"
+#include "datum.h"
 
 extern avro_value_iface_t  AVRO_DATUM_VALUE_CLASS;
 
@@ -244,7 +245,10 @@ avro_datum_value_get_string(const avro_value_iface_t *iface,
 		*str = (const char *) value;
 	}
 	if (size != NULL) {
-		*size = strlen(value)+1;
+		*size = avro_datum_to_string(self)->size;
+		if (*size == 0) {
+			*size = strlen(value)+1;
+		}
 	}
 	return 0;
 }
@@ -258,14 +262,12 @@ avro_datum_value_grab_string(const avro_value_iface_t *iface,
 	check_param(EINVAL, self, "datum instance");
 
 	int  rval;
-	char  *str;
+	const char  *str;
 	size_t  sz;
-	check(rval, avro_string_get(self, &str));
-	sz = strlen(str);
+	check(rval, avro_datum_value_get_string(iface, vself, &str, &sz));
 
 	/* nothing clever, just make a copy */
-	/* sz doesn't contain NUL terminator */
-	return avro_wrapped_buffer_new_copy(dest, str, sz+1);
+	return avro_wrapped_buffer_new_copy(dest, str, sz);
 }
 
 static int
@@ -418,10 +420,9 @@ avro_datum_value_set_string_len(const avro_value_iface_t *iface,
 				void *vself, const char *str, size_t size)
 {
 	AVRO_UNUSED(iface);
-	AVRO_UNUSED(size);
 	avro_datum_t  self = (avro_datum_t) vself;
 	check_param(EINVAL, self, "datum instance");
-	return avro_string_set(self, str);
+	return avro_string_set_length(self, str, size);
 }
 
 static int

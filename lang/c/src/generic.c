@@ -1781,7 +1781,9 @@ avro_generic_string_set_length(const avro_value_iface_t *iface,
 	AVRO_UNUSED(iface);
 	check_param(EINVAL, val != NULL, "string contents");
 	avro_raw_string_t  *self = (avro_raw_string_t *) vself;
+	/* Copy the payload and append a terminator in our own storage. */
 	avro_raw_string_set_length(self, val, size);
+	self->wrapped.size++;
 	return 0;
 }
 
