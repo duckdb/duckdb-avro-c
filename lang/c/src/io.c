@@ -403,6 +403,14 @@ void avro_writer_reset(avro_writer_t writer)
 	}
 }
 
+int64_t avro_reader_tell(avro_reader_t reader)
+{
+	if (is_memory_io(reader)) {
+		return avro_reader_to_memory(reader)->read;
+	}
+	return EINVAL;
+}
+
 int64_t avro_writer_tell(avro_writer_t writer)
 {
 	if (is_memory_io(writer)) {

@@ -63,6 +63,7 @@ int avro_write(avro_writer_t writer, void *buf, int64_t len);
 void avro_reader_reset(avro_reader_t reader);
 
 void avro_writer_reset(avro_writer_t writer);
+int64_t avro_reader_tell(avro_reader_t reader);
 int64_t avro_writer_tell(avro_writer_t writer);
 const char *avro_writer_buf(avro_writer_t writer);
 
@@ -103,6 +104,7 @@ avro_value_sizeof(avro_value_t *src, size_t *size);
 
 /* File object container */
 typedef struct avro_file_reader_t_ *avro_file_reader_t;
+typedef struct avro_file_block_reader_t_ *avro_file_block_reader_t;
 typedef struct avro_file_writer_t_ *avro_file_writer_t;
 
 int avro_file_writer_create(const char *path, avro_schema_t schema,
@@ -121,6 +123,13 @@ int avro_file_writer_create_from_writers_with_metadata_and_codec(avro_writer_t w
 int avro_file_writer_open(const char *path, avro_file_writer_t * writer);
 int avro_file_writer_open_bs(const char *path, avro_file_writer_t * writer, size_t block_size);
 int avro_file_reader(const char *path, avro_file_reader_t * reader);
+/*
+ * Open an object container backed by immutable memory and build an index of
+ * its blocks.  The caller must keep buf alive until the file reader and all
+ * block readers created from it have been closed.
+ */
+int avro_file_reader_memory(const char *buf, int64_t len,
+			avro_file_reader_t * reader);
 int avro_file_reader_fp(FILE *fp, const char *path, int should_close,
 			avro_file_reader_t * reader);
 int avro_reader_reader(avro_reader_t reader_in,
@@ -161,6 +170,20 @@ int avro_file_reader_get_metadata_count(avro_file_reader_t reader, size_t *count
  */
 int avro_file_reader_get_metadata_by_index(avro_file_reader_t reader, size_t index,
                                             const char **key, const char **value, size_t *value_size);
+
+/*
+ * Independently decode indexed blocks from a memory-backed file reader.
+ * Each block reader owns its decoder state and can be used by one thread at
+ * a time; distinct block readers can run concurrently.
+ */
+int avro_file_reader_get_block_count(avro_file_reader_t reader, size_t *count);
+int avro_file_block_reader_create(avro_file_reader_t reader,
+			avro_file_block_reader_t *block_reader);
+int avro_file_block_reader_select_block(avro_file_block_reader_t block_reader,
+			size_t block_index);
+int avro_file_block_reader_read_value(avro_file_block_reader_t block_reader,
+			avro_value_t *dest);
+int avro_file_block_reader_close(avro_file_block_reader_t block_reader);
 
 int avro_file_writer_sync(avro_file_writer_t writer);
 int avro_file_writer_flush(avro_file_writer_t writer);
