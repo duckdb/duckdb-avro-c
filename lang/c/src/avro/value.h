@@ -179,12 +179,14 @@ struct avro_value_iface {
 	int (*set_long)(const avro_value_iface_t *iface,
 			void *self, int64_t val);
 	int (*set_null)(const avro_value_iface_t *iface, void *self);
-	/* The input must be NUL-terminated */
+	/* Convenience setter without a size argument; determines length using strlen. */
 	int (*set_string)(const avro_value_iface_t *iface,
 			  void *self, const char *str);
-	/* and size must INCLUDE the NUL terminator */
+	/* Copy exactly size bytes. No input terminator is required or counted.
+	 * The setter appends a terminator to its internal storage. */
 	int (*set_string_len)(const avro_value_iface_t *iface,
 			      void *self, const char *str, size_t size);
+	/* The owned buffer must include a NUL terminator in its size. */
 	int (*give_string_len)(const avro_value_iface_t *iface,
 			       void *self, avro_wrapped_buffer_t *buf);
 

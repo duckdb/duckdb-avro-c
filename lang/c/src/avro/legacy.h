@@ -159,6 +159,8 @@ avro_datum_t avro_union_current_branch(avro_datum_t datum);
 
 /* setters */
 int avro_string_set(avro_datum_t datum, const char *p);
+/* Copy size payload bytes and append a NUL terminator. */
+int avro_string_set_length(avro_datum_t datum, const char *p, size_t size);
 int avro_givestring_set(avro_datum_t datum, const char *p,
 			avro_free_func_t free);
 

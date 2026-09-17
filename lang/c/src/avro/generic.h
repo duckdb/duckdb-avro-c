@@ -81,6 +81,7 @@ int avro_generic_int_new(avro_value_t *value, int32_t val);
 int avro_generic_long_new(avro_value_t *value, int64_t val);
 int avro_generic_null_new(avro_value_t *value);
 int avro_generic_string_new(avro_value_t *value, const char *val);
+/* size excludes the terminator; val need not be NUL-terminated. */
 int avro_generic_string_new_length(avro_value_t *value, const char *val, size_t size);
 
 

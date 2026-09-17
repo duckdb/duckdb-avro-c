@@ -95,6 +95,9 @@ char *avro_strndup(const char *str, size_t size)
 	}
 
 	char *new_str = avro_str_alloc(size + 1);
+	if (new_str == NULL) {
+		return NULL;
+	}
 	memcpy(new_str, str, size);
 	new_str[size] = '\0';
 

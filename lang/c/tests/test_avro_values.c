@@ -790,7 +790,7 @@ test_string(void)
 
 		/* and then again using set_string_len */
 
-		size_t  str_length = strlen(strings[i])+1;
+		size_t  str_length = strlen(strings[i]);
 		try(avro_value_set_string_len(&val, strings[i], str_length),
 		    "Cannot set_len string");
 
@@ -830,6 +830,75 @@ test_string(void)
 		avro_value_decref(&val);
 	}
 
+	return 0;
+}
+
+static int
+test_unterminated_string(void)
+{
+	int rval;
+	size_t lengths[] = {0, 1, 12, 13, 20, 4096};
+	unsigned int impl, i;
+	for (impl = 0; impl < 2; impl++) {
+		avro_value_t val;
+		if (impl == 0) {
+			try(avro_generic_string_new(&val, ""), "Cannot create string");
+		} else {
+			avro_datum_t datum = avro_string("");
+			try(avro_datum_as_value(&val, datum), "Cannot wrap datum");
+			avro_datum_decref(datum);
+		}
+		for (i = 0; i < sizeof(lengths) / sizeof(lengths[0]); i++) {
+			size_t length = lengths[i];
+			/* An exact allocation makes any terminator read fail under ASan. */
+			char *input = malloc(length ? length : 1);
+			const char *actual;
+			size_t size;
+			avro_wrapped_buffer_t buf;
+			memset(input, 'x', length);
+			if (length > 2) {
+				input[2] = '\0';
+			}
+			try(avro_value_set_string_len(&val, input, length), "Cannot set string");
+			try(avro_value_get_string(&val, &actual, &size), "Cannot get string");
+			if (size != length + 1 || memcmp(actual, input, length) || actual[length] != '\0') {
+				fprintf(stderr, "Incorrect unterminated string copy\n");
+				return EXIT_FAILURE;
+			}
+			try(avro_value_grab_string(&val, &buf), "Cannot grab string");
+			if (buf.size != size || memcmp(buf.buf, actual, size)) {
+				return EXIT_FAILURE;
+			}
+			try(avro_value_give_string_len(&val, &buf), "Cannot give string");
+			try(avro_value_get_string(&val, &actual, &size), "Cannot get given string");
+			if (size != length + 1 || memcmp(actual, input, length) || actual[length] != '\0') {
+				return EXIT_FAILURE;
+			}
+			avro_value_t copy;
+			try(avro_generic_string_new_length(&copy, input, length), "Cannot create copy");
+			if (!avro_value_equal(&val, &copy)) {
+				return EXIT_FAILURE;
+			}
+			try(avro_value_copy(&copy, &val), "Cannot copy string");
+			if (!avro_value_equal(&val, &copy)) {
+				return EXIT_FAILURE;
+			}
+			/* The shared round-trip helper has a 4096-byte output buffer. */
+			if (length < 4096) {
+				check_write_read(&copy);
+			}
+			avro_value_decref(&copy);
+			free(input);
+		}
+		const char *empty;
+		size_t empty_size;
+		try(avro_value_set_string_len(&val, "", 0), "Cannot set empty string");
+		try(avro_value_get_string(&val, &empty, &empty_size), "Cannot get empty string");
+		if (empty_size != 1 || empty[0] != '\0') {
+			return EXIT_FAILURE;
+		}
+		avro_value_decref(&val);
+	}
 	return 0;
 }
 
@@ -1435,6 +1504,7 @@ int main(void)
 		{ "long", test_long },
 		{ "null", test_null },
 		{ "string", test_string },
+		{ "unterminated string", test_unterminated_string },
 		{ "array", test_array },
 		{ "enum", test_enum },
 		{ "fixed", test_fixed },
