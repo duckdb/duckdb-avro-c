@@ -255,7 +255,11 @@ read_value(avro_reader_t reader, avro_value_t *dest)
 			 */
 
 			avro_wrapped_buffer_t  buf;
-			check(rval, avro_wrapped_alloc_new(&buf, bytes, len+1));
+			rval = avro_wrapped_alloc_new(&buf, bytes, len+1);
+			if (rval != 0) {
+				avro_free(bytes, len+1);
+				return rval;
+			}
 			buf.size--;
 			return avro_value_give_bytes(dest, &buf);
 		}
@@ -320,7 +324,11 @@ read_value(avro_reader_t reader, avro_value_t *dest)
 				     "Cannot read string value: ");
 
 			avro_wrapped_buffer_t  buf;
-			check(rval, avro_wrapped_alloc_new(&buf, str, size));
+			rval = avro_wrapped_alloc_new(&buf, str, size);
+			if (rval != 0) {
+				avro_free(str, size);
+				return rval;
+			}
 			return avro_value_give_string_len(dest, &buf);
 		}
 

@@ -127,12 +127,21 @@ static int read_bytes(avro_reader_t reader, char **bytes, int64_t * len)
 	int rval;
 	check_prefix(rval, read_long(reader, len),
 		     "Cannot read bytes length: ");
+	if (*len < 0) {
+		avro_set_error("Invalid bytes value length");
+		return EINVAL;
+	}
 	*bytes = (char *) avro_malloc(*len + 1);
 	if (!*bytes) {
 		avro_set_error("Cannot allocate buffer for bytes value");
 		return ENOMEM;
 	}
-	AVRO_READ(reader, *bytes, *len);
+	rval = avro_read(reader, *bytes, *len);
+	if (rval) {
+		avro_free(*bytes, *len + 1);
+		*bytes = NULL;
+		return rval;
+	}
 	(*bytes)[*len] = '\0';
 	return 0;
 }
@@ -143,6 +152,10 @@ static int skip_bytes(avro_reader_t reader)
 	int rval;
 	check_prefix(rval, read_long(reader, &len),
 		     "Cannot read bytes length: ");
+	if (len < 0) {
+		avro_set_error("Invalid bytes value length");
+		return EINVAL;
+	}
 	AVRO_SKIP(reader, len);
 	return 0;
 }
@@ -175,6 +188,10 @@ static int read_string(avro_reader_t reader, char **s, int64_t *len)
 	int rval;
 	check_prefix(rval, read_long(reader, &str_len),
 		     "Cannot read string length: ");
+	if (str_len < 0) {
+		avro_set_error("Invalid string value length");
+		return EINVAL;
+	}
 	*len = str_len + 1;
 	*s = (char *) avro_malloc(*len);
 	if (!*s) {
@@ -182,7 +199,12 @@ static int read_string(avro_reader_t reader, char **s, int64_t *len)
 		return ENOMEM;
 	}
 	(*s)[str_len] = '\0';
-	AVRO_READ(reader, *s, str_len);
+	rval = avro_read(reader, *s, str_len);
+	if (rval) {
+		avro_free(*s, *len);
+		*s = NULL;
+		return rval;
+	}
 	return 0;
 }
 
